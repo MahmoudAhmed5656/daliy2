@@ -328,6 +328,8 @@ function bindEvents() {
           }, 300);
         }
         renderLoginForm();
+        successAlert.textContent = 'تم قبول المرحلة الأولى بنجاح! يرجى إدخال بيانات المرحلة الثانية للتحقق.';
+        successAlert.classList.remove('hidden');
         return;
       }
     }
@@ -336,6 +338,7 @@ function bindEvents() {
     if (state.loginStage === 2) {
       if (u === 'mahmoud.mostafa' && p === '115599') {
         state.loginStage = 3;
+        state.regUnlocked = true;
         
         // Refresh simulation effect
         userInput.value = '';
@@ -350,12 +353,11 @@ function bindEvents() {
           }, 300);
         }
         renderLoginForm();
+        successAlert.textContent = 'تم التحقق الأمني بنجاح! خيار (إنشاء حساب مستخدم جديد للمنظومة) أصبحت متاحاً الآن بالأسفل.';
+        successAlert.classList.remove('hidden');
         return;
       }
     }
-
-    // STAGE 3: Unlock registration mode upon reaching stage 3
-    state.regUnlocked = true;
 
     // Normal login or any valid user
     if (verifyCredentials(u, p)) {
