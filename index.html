@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Traffic Report 2026 - NDS</title>
+
+    <!-- CDNs for Pure HTML/CSS/JS operation -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- SheetJS XLSX -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body class="bg-slate-100 text-slate-900 font-sans min-h-screen">
+
+    <!-- LOGIN SCREEN OVERLAY -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4 dir-rtl text-right select-none">
+      <!-- Background subtle grid effect -->
+      <div class="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none"></div>
+
+      <div id="login-card" class="relative bg-white border border-slate-200/90 rounded-2xl shadow-2xl overflow-hidden max-w-md w-full p-6 sm:p-8 space-y-5 transition-all duration-300">
+        
+        <!-- Header & Logo -->
+        <div class="text-center space-y-2">
+          <div class="inline-flex items-center justify-center px-4 py-1.5 bg-slate-900 text-slate-100 rounded-full text-[11px] font-extrabold tracking-wide border border-slate-800 shadow-sm gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>NDS AUTOMOTIVE GROUP</span>
+            <span class="text-slate-500">|</span>
+            <span class="text-slate-400">بوابة التشغيل v4.2</span>
+          </div>
+
+          <h1 id="login-title" class="text-xl font-black text-slate-900 tracking-tight pt-1">منظومة التقارير والتدفق اليومي</h1>
+          <p id="login-subtitle" class="text-xs font-semibold text-slate-500">منصة الدخول الآمن للبيانات المركزية</p>
+        </div>
+
+        <div id="login-error" class="hidden bg-rose-50 border border-rose-200 text-rose-900 p-3 rounded-xl text-xs font-bold text-center leading-relaxed"></div>
+        <div id="login-success" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-900 p-3 rounded-xl text-xs font-bold text-center leading-relaxed"></div>
+
+        <form id="login-form" class="space-y-3.5">
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-700 block">اسم المستخدم (Username)</label>
+            <input
+              type="text"
+              id="login-username"
+              placeholder="أدخل اسم المستخدم..."
+              required
+              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:ring-2 focus:ring-slate-900 focus:bg-white outline-none transition-all shadow-xs"
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-700 block">كلمة المرور (Password)</label>
+            <input
+              type="password"
+              id="login-password"
+              placeholder="••••••••"
+              required
+              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:ring-2 focus:ring-slate-900 focus:bg-white outline-none transition-all shadow-xs"
+            />
+          </div>
+
+          <button
+            type="submit"
+            id="login-submit-btn"
+            class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold rounded-xl text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer mt-3"
+          >
+            <span id="login-btn-text">دخول المنظومة الآن</span>
+          </button>
+        </form>
+
+        <!-- Hidden by default until unlocked via 3-stage trigger -->
+        <div id="login-toggle-container" class="hidden border-t border-slate-200 pt-3 text-center">
+          <button
+            type="button"
+            id="login-toggle-mode"
+            class="text-xs font-bold text-emerald-800 hover:text-emerald-950 transition-colors cursor-pointer bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-xl border border-emerald-200 inline-block"
+          >
+            إنشاء حساب مستخدم جديد للمنظومة »
+          </button>
+        </div>
+
+        <!-- Security Footer inside card -->
+        <div class="border-t border-slate-100 pt-3 text-center text-[10px] text-slate-400 font-medium space-y-0.5">
+          <p>🔒 اتصال تشغيلي آمن ومحمي بأعلى معايير التشفير (AES-256)</p>
+          <p class="font-mono text-[9px] text-slate-400">NDS Automotive Group Internal Portal • Session Auth Active</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MAIN DASHBOARD APP -->
+    <div id="app-dashboard" class="hidden min-h-screen bg-slate-100 pb-12 dir-ltr">
+      
+      <!-- HEADER BAR -->
+      <header class="bg-slate-100 border-b-2 border-slate-300 p-3 sm:p-4 shadow-xs">
+        <div class="max-w-[1480px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          
+          <!-- Control Action Buttons -->
+          <div class="header-controls flex flex-wrap items-center gap-2 w-full md:w-auto justify-start">
+            
+            <button
+              id="btn-home"
+              title="الرئيسية (04-Aug-26)"
+              class="p-2 bg-white hover:bg-slate-200 rounded border border-slate-400 text-slate-800 transition-colors shadow-xs cursor-pointer font-bold text-xs"
+            >
+              🏠
+            </button>
+
+            <!-- Quick Date Buttons -->
+            <div class="flex items-center gap-1 bg-white p-1 rounded border border-slate-300 text-xs shadow-xs">
+              <span class="text-slate-500 text-[11px] px-1 font-semibold">التاريخ:</span>
+              <button data-date="2026-08-04" class="btn-quick-date px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer bg-emerald-700 text-white shadow-xs">04-Aug-26</button>
+              <button data-date="2026-07-30" class="btn-quick-date px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200">30-Jul-26</button>
+              <button data-date="2026-07-29" class="btn-quick-date px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200">29-Jul-26</button>
+              <button data-date="2026-08-01" class="btn-quick-date px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer bg-slate-100 text-slate-700 hover:bg-slate-200">01-Aug-26</button>
+            </div>
+
+            <!-- Manual Data Entry Modal Button -->
+            <button
+              id="btn-open-data-modal"
+              class="flex items-center gap-1.5 px-3 py-2 bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold rounded shadow border border-blue-900 transition-colors cursor-pointer"
+            >
+              <span>➕ إدخال يدوي</span>
+            </button>
+
+            <!-- Excel Import Modal Button -->
+            <button
+              id="btn-open-excel-modal"
+              class="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded shadow border border-emerald-800 transition-colors cursor-pointer"
+            >
+              <span>📊 استيراد شيت Excel 📥</span>
+            </button>
+
+            <!-- Export Excel Button -->
+            <button
+              id="btn-export-excel"
+              class="flex items-center gap-1.5 px-3 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold rounded shadow border border-emerald-950 transition-colors cursor-pointer"
+            >
+              <span>⬇️ تصدير Excel</span>
+            </button>
+
+            <!-- Refresh Button -->
+            <button
+              id="btn-refresh"
+              title="تحديث العرض للشاشة الحالية"
+              class="p-2 bg-white hover:bg-slate-200 text-slate-700 rounded border border-slate-300 transition-colors flex items-center gap-1 cursor-pointer font-bold text-xs"
+            >
+              <span>🔄 تحديث</span>
+            </button>
+
+            <!-- Screenshot Button -->
+            <button
+              id="btn-screenshot"
+              title="التقاط صورة للتقرير"
+              class="flex items-center gap-1.5 px-3 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded shadow border border-purple-900 transition-colors cursor-pointer"
+            >
+              <span>📸 لقطة شاشة</span>
+            </button>
+
+            <!-- Logout Button -->
+            <button
+              id="btn-logout"
+              title="تسجيل الخروج"
+              class="p-2 bg-red-50 hover:bg-red-100 text-red-700 rounded border border-red-300 transition-colors flex items-center gap-1 cursor-pointer font-bold text-xs"
+            >
+              <span>🚪 خروج</span>
+              <span id="user-badge-name" class="text-[11px] font-bold text-slate-700"></span>
+            </button>
+
+          </div>
+
+          <!-- Center Title Badge -->
+          <div class="bg-[#548235] text-white font-extrabold px-8 py-2 rounded-md shadow border border-[#375623] text-lg flex items-center justify-center tracking-wide">
+            <span>Daily Traffic 2026</span>
+          </div>
+
+          <!-- Right Date Display Pickers -->
+          <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+            
+            <!-- To Date Box -->
+            <div class="flex flex-col items-center border-2 border-slate-700 bg-[#ffff00] shadow-xs rounded-xs overflow-hidden min-w-[100px]">
+              <div class="bg-slate-200 text-slate-800 text-[11px] font-bold px-3 py-0.5 border-b border-slate-600 w-full text-center">
+                To Date
+              </div>
+              <div class="px-2 py-1 font-mono font-bold text-slate-900 text-xs flex items-center justify-center gap-1">
+                <input 
+                  type="date"
+                  id="to-date-input"
+                  value="2026-08-04"
+                  class="bg-transparent border-none text-center font-bold outline-none cursor-pointer text-xs w-24"
+                />
+              </div>
+              <div id="to-date-formatted" class="bg-amber-100/80 text-[10px] text-slate-900 font-bold font-mono pb-0.5 w-full text-center">
+                04-Aug-26
+              </div>
+            </div>
+
+            <!-- From Date Box -->
+            <div class="flex flex-col items-center border-2 border-slate-700 bg-[#ffff00] shadow-xs rounded-xs overflow-hidden min-w-[100px]">
+              <div class="bg-slate-200 text-slate-800 text-[11px] font-bold px-3 py-0.5 border-b border-slate-600 w-full text-center">
+                From Date
+              </div>
+              <div class="px-2 py-1 font-mono font-bold text-slate-900 text-xs flex items-center justify-center gap-1">
+                <input 
+                  type="date"
+                  id="from-date-input"
+                  value="2026-08-04"
+                  class="bg-transparent border-none text-center font-bold outline-none cursor-pointer text-xs w-24"
+                />
+              </div>
+              <div id="from-date-formatted" class="bg-amber-100/80 text-[10px] text-slate-900 font-bold font-mono pb-0.5 w-full text-center">
+                04-Aug-26
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </header>
+
+      <!-- MAIN DASHBOARD CONTENT -->
+      <main class="max-w-[1520px] w-full mx-auto p-4 sm:p-6 space-y-6">
+        
+        <!-- Red Section Header Bar -->
+        <div class="w-full bg-[#c00000] text-white font-bold text-center py-1 rounded-xs shadow-xs uppercase tracking-wider text-sm border-b-2 border-red-900">
+          Company
+        </div>
+
+        <!-- Dashboard Grid Layout -->
+        <div class="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+          
+          <!-- Left Column: Orange Brand Chart -->
+          <div class="xl:col-span-1 space-y-4">
+            <div class="bg-white border-2 border-slate-300 rounded shadow-xs p-3 flex flex-col h-64 w-full">
+              <h3 class="text-center font-bold text-slate-700 text-xs mb-1">Count</h3>
+              <div class="flex-1 w-full min-h-0 relative">
+                <canvas id="brand-chart-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right 3 Columns for Companies -->
+          <div class="xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+            
+            <!-- 1. N Auto Express -->
+            <div class="space-y-4">
+              <div id="table-N-Auto-Express"></div>
+              <div class="bg-white border-2 border-slate-300 rounded shadow-xs p-2 sm:p-3 flex flex-col h-64 w-full">
+                <h3 class="text-center font-bold text-slate-800 text-sm mb-1">N Auto Express (Traffic)</h3>
+                <div class="flex-1 w-full min-h-0 relative">
+                  <canvas id="chart-canvas-N-Auto-Express"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. NDS For Car Service -->
+            <div class="space-y-4">
+              <div id="table-NDS-For-Car-Service"></div>
+              <div class="bg-white border-2 border-slate-300 rounded shadow-xs p-2 sm:p-3 flex flex-col h-64 w-full">
+                <h3 class="text-center font-bold text-slate-800 text-sm mb-1">NDS For Car Service (Traffic)</h3>
+                <div class="flex-1 w-full min-h-0 relative">
+                  <canvas id="chart-canvas-NDS-For-Car-Service"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. NDS For Distribution -->
+            <div class="space-y-4">
+              <div id="table-NDS-For-Distribution"></div>
+              <div class="bg-white border-2 border-slate-300 rounded shadow-xs p-2 sm:p-3 flex flex-col h-64 w-full">
+                <h3 class="text-center font-bold text-slate-800 text-sm mb-1">NDS For Distribution (Traffic)</h3>
+                <div class="flex-1 w-full min-h-0 relative">
+                  <canvas id="chart-canvas-NDS-For-Distribution"></canvas>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+
+    <!-- MODAL 1: MANUAL DATA ENTRY MODAL -->
+    <div id="data-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4 overflow-y-auto dir-rtl text-right">
+      <div class="bg-white rounded-xl shadow-2xl border border-slate-300 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden">
+        
+        <div class="bg-slate-800 text-white p-4 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-400 font-bold">➕</span>
+            <h2 class="text-base font-bold">إدارة وإدخال داتا الحجوزات والدخول الفعلي للمراكز</h2>
+          </div>
+          <button id="btn-close-data-modal" class="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300 cursor-pointer">✕</button>
+        </div>
+
+        <div class="p-4 sm:p-6 overflow-y-auto space-y-6">
+          <div id="data-modal-success-msg" class="hidden bg-emerald-100 border border-emerald-400 text-emerald-800 px-4 py-2 rounded-lg text-sm font-semibold"></div>
+
+          <form id="data-record-form" class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+            <div class="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2">
+              <span>إضافة / تعديل سجل حجز ودخول فعلي</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">التاريخ</label>
+                <input type="date" id="data-input-date" value="2026-08-04" required class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-mono text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">الشركة</label>
+                <select id="data-input-company" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs">
+                  <option value="N Auto Express">N Auto Express</option>
+                  <option value="NDS For Car Service">NDS For Car Service</option>
+                  <option value="NDS For Distribution">NDS For Distribution</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">المركز</label>
+                <select id="data-input-center" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs">
+                  <option value="El Kattamia">القطامية (El Kattamia)</option>
+                  <option value="Hadayek El Ahram">حدائق الأهرام (Hadayek El Ahram)</option>
+                  <option value="Smoha">سموحة (Smoha)</option>
+                  <option value="Merghem">مرغم (Merghem)</option>
+                  <option value="Antoniados">انطونيادس (Antoniados)</option>
+                  <option value="Maryland">ميريلاند (Maryland)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">الماركة (Brand)</label>
+                <select id="data-input-brand" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs">
+                  <option value="Jetour">Jetour</option>
+                  <option value="Skoda">Skoda</option>
+                  <option value="SEAT">SEAT</option>
+                  <option value="Rox">Rox</option>
+                  <option value="ROX MOTOR">ROX MOTOR</option>
+                  <option value="NISSAN">NISSAN</option>
+                  <option value="HYUNDAI">HYUNDAI</option>
+                  <option value="PROTON">PROTON</option>
+                  <option value="VENUCIA">VENUCIA</option>
+                  <option value="PEUGEOT">PEUGEOT</option>
+                  <option value="FORD">FORD</option>
+                  <option value="KIA PICANTO">KIA PICANTO</option>
+                  <option value="VOLVO">VOLVO</option>
+                  <option value="SUZUKI">SUZUKI</option>
+                  <option value="CHEVROLET">CHEVROLET</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">نوع الخدمة الرئيسي</label>
+                <select id="data-input-servicetype" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs">
+                  <option value="Mechanical">Mechanical</option>
+                  <option value="Car Care">Car Care</option>
+                  <option value="Mechanical & Car Care">Mechanical & Car Care</option>
+                  <option value="لاغي">لاغي</option>
+                  <option value="WE CARE">WE CARE</option>
+                  <option value="GoodWill">GoodWill</option>
+                  <option value="Guarantee">Guarantee</option>
+                  <option value="Body and paint">Body and paint</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1 text-blue-800">استعلام نموذج الحجز (Reserve Inquiry)</label>
+                <input type="number" id="data-input-reserveinquiry" min="0" value="0" class="w-full bg-blue-50 border border-blue-300 rounded p-2 text-slate-900 font-bold text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">Mechanical</label>
+                <input type="number" id="data-input-mechanical" min="0" value="1" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">WE CARE</label>
+                <input type="number" id="data-input-wecare" min="0" value="0" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">GoodWill</label>
+                <input type="number" id="data-input-goodwill" min="0" value="0" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">Guarantee</label>
+                <input type="number" id="data-input-guarantee" min="0" value="0" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">Body and paint</label>
+                <input type="number" id="data-input-bodypaint" min="0" value="0" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs" />
+              </div>
+
+              <div>
+                <label class="block text-slate-700 font-bold mb-1">لاغي</label>
+                <input type="number" id="data-input-cancelled" min="0" value="0" class="w-full bg-white border border-slate-300 rounded p-2 text-slate-900 font-bold text-xs" />
+              </div>
+
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-5 py-2 rounded-lg text-xs shadow transition-colors cursor-pointer">
+                💾 حفظ السجل في النظام
+              </button>
+            </div>
+          </form>
+
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm mb-3">السجلات الحالية (<span id="data-modal-records-count">0</span>):</h3>
+            <div class="border border-slate-300 rounded-lg overflow-x-auto bg-white max-h-52">
+              <table class="w-full text-right text-xs">
+                <thead class="bg-slate-100 border-b border-slate-300 text-slate-700 font-bold">
+                  <tr>
+                    <th class="p-2">التاريخ</th>
+                    <th class="p-2">الشركة</th>
+                    <th class="p-2">المركز</th>
+                    <th class="p-2">الماركة</th>
+                    <th class="p-2 text-center">استعلام الحجز</th>
+                    <th class="p-2 text-center">Mechanical</th>
+                    <th class="p-2 text-center">WE CARE</th>
+                    <th class="p-2 text-center">إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="data-modal-records-tbody" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bg-slate-100 p-3 border-t border-slate-300 flex justify-end">
+          <button id="btn-close-data-modal" class="px-4 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded text-xs cursor-pointer">إغلاق</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL 2: EXCEL IMPORT MODAL -->
+    <div id="excel-modal" class="hidden fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-3 sm:p-5 overflow-y-auto dir-rtl text-right">
+      <div class="bg-white rounded-xl shadow-2xl border border-slate-300 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden">
+        
+        <div class="bg-[#1e293b] text-white p-4 flex items-center justify-between border-b border-slate-700">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2 bg-emerald-600 rounded-lg text-white font-bold">📊</span>
+            <div>
+              <h2 class="text-base font-bold text-slate-100">استيراد وحمل داتا شيت Excel مباشرة</h2>
+              <p class="text-xs text-slate-300">رفع ملف .xlsx / .xls أو نسخ ولصق الخلايا تلقائياً</p>
+            </div>
+          </div>
+          <button id="btn-close-excel-modal" class="p-1.5 hover:bg-slate-700 rounded-lg text-slate-300 cursor-pointer">✕</button>
+        </div>
+
+        <div class="p-4 sm:p-6 overflow-y-auto space-y-5">
+          
+          <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800">تاريخ الداتا المستوردة:</span>
+              <input type="date" id="excel-target-date" value="2026-08-04" class="bg-white border border-slate-300 rounded px-2.5 py-1 text-slate-900 font-bold font-mono text-xs" />
+            </div>
+
+            <button id="btn-download-sample-excel" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded font-semibold text-[11px] transition-colors cursor-pointer">
+              📥 تحميل نموذج شيت Excel تجريبي
+            </button>
+          </div>
+
+          <!-- Upload Dropzone -->
+          <div class="space-y-3">
+            <label class="block font-bold text-slate-800 text-xs">الخيار الأول: اختيار ملف Excel (.xlsx / .xls)</label>
+            <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs" />
+          </div>
+
+          <!-- Paste Raw Cells Option -->
+          <div class="space-y-3 pt-2 border-t border-slate-200">
+            <label class="block font-bold text-slate-800 text-xs">الخيار الثاني: نسخ ولصق خلايا Excel مباشرة (Ctrl+C / Ctrl+V)</label>
+            <textarea id="excel-pasted-textarea" rows="4" placeholder="Merghem	SKODA	Maintenance&#10;Smoha	SEAT	Maintenance..." class="w-full border border-slate-300 rounded-lg p-3 text-xs font-mono bg-slate-50 text-slate-900 outline-none"></textarea>
+            <button id="btn-parse-pasted" class="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer">
+              ✨ تحليل النص المنسوخ
+            </button>
+          </div>
+
+          <!-- Parsed Preview -->
+          <div id="excel-parse-preview" class="hidden space-y-4 border-t border-slate-200 pt-4">
+            <div class="bg-emerald-50 border border-emerald-300 p-3.5 rounded-lg flex flex-wrap items-center justify-between gap-3 text-xs text-emerald-900">
+              <div class="font-bold">
+                تم قراءة <strong id="excel-parsed-total-jobs" class="text-emerald-950 font-black text-sm">0</strong> أمر شغل بنجاح!
+              </div>
+              <div class="flex items-center gap-2 text-[11px] font-semibold">
+                <span>N Auto: <b id="excel-parsed-count-nauto">0</b></span>
+                <span>Car Service: <b id="excel-parsed-count-carservice">0</b></span>
+                <span>Distribution: <b id="excel-parsed-count-dist">0</b></span>
+              </div>
+            </div>
+
+            <div class="border border-slate-300 rounded-lg overflow-x-auto bg-white max-h-44 text-xs">
+              <table class="w-full text-right">
+                <thead class="bg-slate-100 border-b border-slate-300 font-bold text-slate-700">
+                  <tr>
+                    <th class="p-2">الشركة</th>
+                    <th class="p-2">المركز</th>
+                    <th class="p-2">الماركة</th>
+                    <th class="p-2">نوع الخدمة</th>
+                    <th class="p-2 text-center">العدد</th>
+                  </tr>
+                </thead>
+                <tbody id="excel-parsed-tbody" class="divide-y divide-slate-200"></tbody>
+              </table>
+            </div>
+
+            <div class="bg-slate-100 p-3 rounded-lg border border-slate-200 space-y-2 text-xs">
+              <span class="font-bold text-slate-800 block">وضع التحديث:</span>
+              <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                  <input type="radio" name="replaceMode" id="excel-replace-mode-yes" checked />
+                  <span>استبدال داتا التاريخ بالكامل</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-slate-700">
+                  <input type="radio" name="replaceMode" id="excel-replace-mode-no" />
+                  <span>إضافة إلى الداتا الحالية</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bg-slate-100 p-4 border-t border-slate-300 flex items-center justify-between">
+          <button id="btn-close-excel-modal" class="px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-800 font-bold rounded-lg text-xs cursor-pointer">إلغاء</button>
+          <button id="btn-confirm-import" class="px-6 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-lg text-xs shadow-md transition-colors cursor-pointer">
+            تأكيد واعتماد الداتا في النظام 🚀
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- App Script -->
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>

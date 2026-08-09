@@ -1,0 +1,6 @@
+{
+  "name": "Daily Traffic 2026",
+  "description": "Daily Traffic and Booking Analytics Sheet for Cairo and Alexandria Centers",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
